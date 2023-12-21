@@ -54,7 +54,7 @@ namespace DiscordBot_WhiteList.Moduls
         {
 
 
-            var embedBuilder = CreateFormEmdeb("Заявка на регистрацию", Color.LightOrange, modal.Nick, modal.steamId, modal.web);
+            var embedBuilder = CreateFormEmdeb("Заявка на регистрацию", Color.LightOrange, modal.Nick, modal.steamId, modal.web, Context.User.Id);
 
             var acceptButton = new ButtonBuilder()
             {
@@ -92,16 +92,17 @@ namespace DiscordBot_WhiteList.Moduls
                     var nameField = embed.Fields.First(x => x.Name == "Позывной").Value;
                     var steamId = embed.Fields.First(x => x.Name == "Steam Id").Value;
                     var steamWeb = embed.Fields.First(x => x.Name == "Ссылка на Steam").Value;
+                    var user = embed.Fields.First(x => x.Name == "Пользователь").Value.Replace("@", "").Replace("<", "").Replace(">", "");
 
-                    var embedBuilder = CreateFormEmdeb("Принят", Color.Green, nameField, steamId, steamWeb);
+                    var embedBuilder = CreateFormEmdeb("Принят", Color.Green, nameField, steamId, steamWeb, ulong.Parse(user));
 
                     var componentBuilder = new ComponentBuilder();
 
                     var role = Context.Guild.Roles.FirstOrDefault(x => x.Id == StaticData.newRole);
                     if (role != null)
                     {
-                        var user = (IGuildUser)Context.User;
-                        await user.AddRoleAsync(role);
+                        var userGuid = (IGuildUser)Context.User;
+                        await userGuid.AddRoleAsync(role);
                     }
 
                     var res = await _service.AddWhiteListAsync(steamId);
@@ -153,8 +154,9 @@ namespace DiscordBot_WhiteList.Moduls
             var nameField = embed.Fields.First(x => x.Name == "Позывной").Value;
             var steamId = embed.Fields.First(x => x.Name == "Steam Id").Value;
             var steamWeb = embed.Fields.First(x => x.Name == "Ссылка на Steam").Value;
+            var userMentionId = embed.Fields.First(x => x.Name == "Пользователь").Value.Replace("@", "").Replace("<", "").Replace(">", "");
 
-            var embedBuilder = CreateFormEmdeb("Отклонено", Color.Red, nameField, steamId, steamWeb, modal.Text);
+            var embedBuilder = CreateFormEmdeb("Отклонено", Color.Red, nameField, steamId, steamWeb, ulong.Parse(userMentionId), modal.Text);
             var componentBuilder = new ComponentBuilder();
 
             await message.ModifyAsync(props =>
@@ -163,21 +165,37 @@ namespace DiscordBot_WhiteList.Moduls
                 props.Components = componentBuilder.Build();
             });
 
+            var user = Context.Guild.Users.FirstOrDefault(x => x.Id == ulong.Parse(userMentionId));
+            if (user != null)
+            {
+                await user.SendMessageAsync("Ваша заявка отклонена, исправьте замечание и отправьте заявку снова " + message.GetJumpUrl());
+            }
+
             await RespondAsync();
         }
 
-        private EmbedBuilder CreateFormEmdeb(string titel, Color color, string name, string steamId, string steamWeb, string errorMessage = null)
+        private EmbedBuilder CreateFormEmdeb(string titel, Color color, string name, string steamId, string steamWeb, ulong userId, string errorMessage = null)
         {
+            var user = Context.Guild.Users.FirstOrDefault(x => x.Id == userId);
             var embedBuilder = new EmbedBuilder()
             {
                 Title = titel,
+            };
+            if (user != null)
+            {
+                embedBuilder.Author = new()
+                {
+                    Name = user.GlobalName,
+                    IconUrl = user.GetAvatarUrl(),
+                };
+                embedBuilder.AddField("Пользователь", user.Mention);
             }
-           .AddField("Позывной", name)
+            embedBuilder.AddField("Позывной", name)
            .AddField("Steam Id", steamId)
            .AddField("Ссылка на Steam", steamWeb)
            .WithColor(color)
            .WithCurrentTimestamp();
-
+            
             if (errorMessage != null)
             {
                 embedBuilder.AddField("Причина", errorMessage);
