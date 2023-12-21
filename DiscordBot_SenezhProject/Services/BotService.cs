@@ -15,7 +15,7 @@ namespace DiscordBot_WhiteList.Services
             try
             {
                 bool isNewSteamId = true;
-                string guid = GenerateGuidBySteamId(steamId);
+                string guid = GenerateGuidBySteamId(ulong.Parse(steamId));
                 StreamReader sr = new(StaticData.pathOfWhiteList.Replace(" ", ""));
 
                 var lines = await sr.ReadLineAsync();
@@ -55,19 +55,27 @@ namespace DiscordBot_WhiteList.Services
             }
         }
 
-        private string GenerateGuidBySteamId(string steamId)
+        private string GenerateGuidBySteamId(ulong steamId)
         {
-            byte[] byteArray = Encoding.UTF8.GetBytes(steamId);
-            string guid = "";
+            byte[] temp = new byte[8];
 
-            using(MD5 mD5 = MD5.Create())
+            for (int i = 0; i < 8; i++)
             {
-                byte[] hashBytes = mD5.ComputeHash(byteArray);
-
-                guid = BitConverter.ToString(hashBytes).Replace("-", string.Empty).ToLower();
+                temp[i] = (byte)(steamId & 0xFF);
+                steamId >>= 8;
             }
 
-            return guid;
+
+            byte[] data = new byte[temp.Length + 2];
+            data[0] = (byte)'B';
+            data[1] = (byte)'E';
+            Array.Copy(temp, 0, data, 2, temp.Length);
+
+            MD5 md5 = MD5.Create();
+
+            byte[] hash = md5.ComputeHash(data);
+
+            return BitConverter.ToString(hash).Replace("-", "").ToLower();
         }
     }
 }
