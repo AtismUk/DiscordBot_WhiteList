@@ -11,6 +11,8 @@ namespace DiscordBot_WhiteList
         public static ulong moderateRole { get; set; }
         public static ulong newRole { get; set; }
         public static bool isConfigured { get; set; }
+        public static ulong requiredRoleId { get; set; }
+        public static ulong channelId { get; set; }
         public static string pathOfWhiteList { get; set; }
     }
 }
