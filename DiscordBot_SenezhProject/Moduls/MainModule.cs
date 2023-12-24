@@ -29,13 +29,13 @@ namespace DiscordBot_WhiteList.Moduls
         }
 
 
-        [SlashCommand("whitelisttest", "Registration in project")]
+        [SlashCommand("whitelist", "Registration in project")]
         public async Task RegistrationCommand()
         {
             await RespondWithModalAsync<RegistModal>("registration_modal");
         }
 
-        [SlashCommand("configtest", "Settings of bot")]
+        [SlashCommand("config", "Settings of bot")]
         public async Task ConfigCommand(IRole new_role, IChannel admin_channel, string path_of_whitelist)
         {
             if (Context.User is SocketGuildUser userGuild)
@@ -128,7 +128,7 @@ namespace DiscordBot_WhiteList.Moduls
                     }
 
                     ulong id = 0;
-                    ulong.TryParse(user, out id);
+                    ulong.TryParse(user.Replace("@", "").Replace("<", "").Replace(">", ""), out id);
                     var res = await _service.AddWhiteListAsync(steamId, nameField, id);
 
                     if (!res.IsValid)
@@ -142,7 +142,7 @@ namespace DiscordBot_WhiteList.Moduls
                         if (channel != null)
                         {
                             var embedNotify = NotifyEmbed(steamId, user, Context.Interaction.User.Mention);
-                            await channel.SendMessageAsync(embed: embedNotify.Build());
+                            await channel.SendMessageAsync(embed: embedNotify.Build(), messageReference: message.Reference);
                         }
                         await message.ModifyAsync(props =>
                         {
@@ -217,7 +217,7 @@ namespace DiscordBot_WhiteList.Moduls
             if (channel != null)
             {
                 var embedNotify = NotifyEmbed(steamId, userMentionId, Context.Interaction.User.Mention, modal.Text);
-                await channel.SendMessageAsync(embed: embedNotify.Build());
+                await channel.SendMessageAsync(embed: embedNotify.Build(), messageReference: message.Reference);
             }
 
             await RespondAsync();
